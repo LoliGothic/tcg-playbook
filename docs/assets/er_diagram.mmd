@@ -1,0 +1,23 @@
+%% Duel Matrix ER 図（勝者記録モデル）
+%% archetypes と matches の 2 テーブル構成．
+%% matches は「勝った試合」を 1 件だけ保存し，winner_archetype_id / loser_archetype_id の
+%% 2 本の外部キーで archetypes を参照する（勝者・敗者の両方を同じテーブルから引く）．
+erDiagram
+    ARCHETYPES {
+        BIGINT id PK "主キー，自動採番"
+        VARCHAR name "アーキタイプ名，一意"
+        TIMESTAMP created_at "登録日時"
+    }
+
+    MATCHES {
+        BIGINT id PK "主キー，自動採番"
+        BIGINT winner_archetype_id FK "勝者のアーキタイプ"
+        BIGINT loser_archetype_id FK "敗者のアーキタイプ"
+        VARCHAR play_order "勝者の先攻後攻: FIRST / SECOND / UNKNOWN"
+        VARCHAR memo "自由記述メモ"
+        TIMESTAMP played_at "対戦日時"
+        TIMESTAMP created_at "登録日時"
+    }
+
+    ARCHETYPES ||--o{ MATCHES : winner
+    ARCHETYPES ||--o{ MATCHES : loser

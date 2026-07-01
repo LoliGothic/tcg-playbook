@@ -1,0 +1,47 @@
+%% Duel Matrix デザインパターン関係図
+%% Factory / Command / Template Method の 3 つが，システム内でどう連携するかを示す．
+%% 読み方:
+%%   1) Controller は「操作」を Command として組み立て，CommandInvoker に渡す．
+%%   2) Command は Service を呼ぶ．Service は Factory で DTO からドメインを生成する．
+%%   3) マトリクス生成は Template Method（AbstractMatrixBuilder）に共通手順をまとめる．
+flowchart TB
+    subgraph CommandLayer["Command Pattern（操作の抽象化）"]
+        direction TB
+        CMD["Command&lt;T&gt;（interface）\nexecute() : T"]
+        CAC["CreateArchetypeCommand"]
+        CMC["CreateMatchCommand"]
+        GMC["GenerateMatrixCommand"]
+        INV["CommandInvoker\ninvoke(Command&lt;T&gt;)"]
+        CAC -. implements .-> CMD
+        CMC -. implements .-> CMD
+        GMC -. implements .-> CMD
+        INV -->|execute| CMD
+    end
+
+    subgraph FactoryLayer["Factory Pattern（生成の分離）"]
+        direction TB
+        AF["ArchetypeFactory\ncreate(req) : Archetype"]
+        MF["MatchRecordFactory\ncreate(req) : MatchRecord"]
+    end
+
+    subgraph TemplateLayer["Template Method Pattern（手順の共通化）"]
+        direction TB
+        AMB["AbstractMatrixBuilder（abstract）\nbuild()=テンプレートメソッド"]
+        SMB["StandardMatrixBuilder\n具体的な集計処理を実装"]
+        SMB -->|extends| AMB
+    end
+
+    subgraph Services["Service 層"]
+        AS["ArchetypeService"]
+        MS["MatchService"]
+        MXS["MatrixService"]
+    end
+
+    Controller["Controller 層"] -->|操作を Command 化| INV
+    CAC --> AS
+    CMC --> MS
+    GMC --> MXS
+
+    AS -->|生成を委譲| AF
+    MS -->|生成を委譲| MF
+    MXS -->|手順を委譲| SMB

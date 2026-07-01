@@ -1,0 +1,19 @@
+%% Duel Matrix 4 週間開発スケジュール
+%% 2026-07-31 提出を想定した仮日程．
+%% Week 1 で基盤（A担当），Week 2〜3 で機能（B/C/D担当），Week 4 でテストと発表準備．
+gantt
+    title Duel Matrix Development Schedule
+    dateFormat  YYYY-MM-DD
+
+    section Week 1 (基盤)
+    Spec and Base Setup        :a1, 2026-07-01, 5d
+
+    section Week 2 (機能前半)
+    Archetype and Match API    :a2, after a1, 7d
+
+    section Week 3 (機能後半)
+    Matrix and UI              :a3, after a2, 7d
+
+    section Week 4 (仕上げ)
+    Testing and Presentation   :a4, after a3, 6d
+    Submission (提出)          :milestone, m1, 2026-07-31, 0d

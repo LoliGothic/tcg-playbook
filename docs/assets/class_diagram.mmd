@@ -1,0 +1,190 @@
+%% Duel Matrix クラス図（勝者記録モデル）
+%% レイヤ構成: controller -> service -> (repository / pattern.factory / pattern.template)
+%% Controller は Command を経由して Service を呼び出す設計も可能（Command Pattern）．
+classDiagram
+    direction TB
+
+    %% ================= domain =================
+    class Archetype {
+        -Long id
+        -String name
+        -LocalDateTime createdAt
+        +getId() Long
+        +getName() String
+        +getCreatedAt() LocalDateTime
+    }
+    class MatchRecord {
+        -Long id
+        -Long winnerArchetypeId
+        -Long loserArchetypeId
+        -PlayOrder playOrder
+        -String memo
+        -LocalDateTime playedAt
+        -LocalDateTime createdAt
+        +getWinnerArchetypeId() Long
+        +getLoserArchetypeId() Long
+        +getPlayOrder() PlayOrder
+    }
+    class PlayOrder {
+        <<enumeration>>
+        FIRST
+        SECOND
+        UNKNOWN
+    }
+
+    %% ================= dto =================
+    class ArchetypeCreateRequest {
+        -String name
+    }
+    class ArchetypeResponse {
+        -Long id
+        -String name
+        -LocalDateTime createdAt
+    }
+    class MatchCreateRequest {
+        -Long winnerArchetypeId
+        -Long loserArchetypeId
+        -String playOrder
+        -String memo
+        -LocalDateTime playedAt
+    }
+    class MatchResponse {
+        -Long id
+        -Long winnerArchetypeId
+        -String winnerArchetypeName
+        -Long loserArchetypeId
+        -String loserArchetypeName
+        -String playOrder
+        -String memo
+        -LocalDateTime playedAt
+        -LocalDateTime createdAt
+    }
+    class MatrixRowResponse {
+        -Long myArchetypeId
+        -String myArchetypeName
+        -Long opponentArchetypeId
+        -String opponentArchetypeName
+        -int wins
+        -int losses
+        -int total
+        -double winRate
+    }
+    class MatrixResponse {
+        -List~MatrixRowResponse~ rows
+    }
+    class ErrorResponse {
+        -String error
+        -String message
+        -String path
+        -LocalDateTime timestamp
+    }
+
+    %% ================= controller =================
+    class ArchetypeController {
+        +getAllArchetypes() List~ArchetypeResponse~
+        +createArchetype(ArchetypeCreateRequest) ResponseEntity
+    }
+    class MatchController {
+        +getAllMatches() List~MatchResponse~
+        +createMatch(MatchCreateRequest) ResponseEntity
+    }
+    class MatrixController {
+        +getMatrix() MatrixResponse
+    }
+    class ViewController {
+        +archetypesPage() String
+        +matchesPage() String
+        +matrixPage() String
+    }
+
+    %% ================= service =================
+    class ArchetypeService {
+        +getAllArchetypes() List~ArchetypeResponse~
+        +createArchetype(ArchetypeCreateRequest) ArchetypeResponse
+        +findById(Long) Archetype
+    }
+    class MatchService {
+        +getAllMatches() List~MatchResponse~
+        +createMatch(MatchCreateRequest) MatchResponse
+    }
+    class MatrixService {
+        +calculateMatrix() MatrixResponse
+    }
+
+    %% ================= repository =================
+    class ArchetypeRepository {
+        <<interface>>
+        +existsByNameIgnoreCase(String) boolean
+        +findByNameIgnoreCase(String) Optional~Archetype~
+    }
+    class MatchRepository {
+        <<interface>>
+        +findAllByOrderByPlayedAtDesc() List~MatchRecord~
+    }
+
+    %% ================= pattern.factory =================
+    class ArchetypeFactory {
+        +create(ArchetypeCreateRequest) Archetype
+    }
+    class MatchRecordFactory {
+        +create(MatchCreateRequest) MatchRecord
+    }
+
+    %% ================= pattern.command =================
+    class Command~T~ {
+        <<interface>>
+        +execute() T
+    }
+    class CreateArchetypeCommand {
+        +execute() ArchetypeResponse
+    }
+    class CreateMatchCommand {
+        +execute() MatchResponse
+    }
+    class GenerateMatrixCommand {
+        +execute() MatrixResponse
+    }
+    class CommandInvoker {
+        +invoke(Command~T~) T
+    }
+
+    %% ================= pattern.template =================
+    class AbstractMatrixBuilder {
+        <<abstract>>
+        +build() MatrixResponse
+        #loadArchetypes()* List~Archetype~
+        #loadMatches()* List~MatchRecord~
+        #buildRow(...)* MatrixRowResponse
+    }
+    class StandardMatrixBuilder {
+        #loadArchetypes() List~Archetype~
+        #loadMatches() List~MatchRecord~
+        #buildRow(...) MatrixRowResponse
+    }
+
+    %% ================= 関係 =================
+    MatchRecord --> PlayOrder
+    MatrixResponse --> MatrixRowResponse
+
+    ArchetypeController --> ArchetypeService
+    MatchController --> MatchService
+    MatrixController --> MatrixService
+
+    ArchetypeService --> ArchetypeRepository
+    ArchetypeService --> ArchetypeFactory
+    MatchService --> MatchRepository
+    MatchService --> MatchRecordFactory
+    MatchService --> ArchetypeRepository
+    MatrixService --> StandardMatrixBuilder
+
+    CreateArchetypeCommand ..|> Command
+    CreateMatchCommand ..|> Command
+    GenerateMatrixCommand ..|> Command
+    CommandInvoker --> Command
+
+    StandardMatrixBuilder --|> AbstractMatrixBuilder
+    StandardMatrixBuilder --> ArchetypeRepository
+    StandardMatrixBuilder --> MatchRepository
+
+    ArchetypeFactory --> Archetype
+    MatchRecordFactory --> MatchRecord
