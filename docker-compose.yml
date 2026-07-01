@@ -1,0 +1,19 @@
+# =====================================================================
+# Duel Matrix docker-compose.yml（最小構成）
+# ---------------------------------------------------------------------
+# H2 Database は Spring Boot アプリ内で動くため，DB 用コンテナは不要．
+# よって定義するサービスは app（Spring Boot アプリ）のみ．
+#
+# 起動:   docker compose up --build
+# 停止:   docker compose down
+# =====================================================================
+services:
+  app:
+    build: .
+    container_name: duel-matrix-app
+    ports:
+      - "8080:8080"
+    environment:
+      # docker プロファイルを有効化する想定．
+      # 実装時に src/main/resources/application-docker.properties を用意する．
+      SPRING_PROFILES_ACTIVE: docker

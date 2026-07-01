@@ -1,0 +1,8 @@
+# Docker イメージのビルドに不要なファイルを除外する．
+# これらを含めるとビルドコンテキストが無駄に大きくなる．
+.git
+.idea
+.vscode
+target
+*.log
+.DS_Store
