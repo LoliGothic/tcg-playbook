@@ -9,3 +9,9 @@ target/
 # ログ・OS ファイル
 *.log
 .DS_Store
+
+# Eclipse metadata
+.metadata
+.classpath
+.project
+.settings/
