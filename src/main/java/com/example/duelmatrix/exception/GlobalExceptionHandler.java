@@ -51,6 +51,12 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", message, req);
     }
 
+    /** Service 層で検出した入力値・業務ルール違反 → 400 */
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessValidation(ValidationException ex, HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", ex.getMessage(), req);
+    }
+
     /** リクエスト本文が壊れている・enum に無い値など読み取り不能 → 400 */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleUnreadable(HttpMessageNotReadableException ex, HttpServletRequest req) {
