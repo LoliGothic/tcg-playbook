@@ -1,10 +1,203 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-<meta charset="UTF-8">
-<title>Insert title here</title>
+    <meta charset="UTF-8">
+    <title>対戦記録画面</title>
+    <style>
+        body { font-family: sans-serif; margin: 30px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        .form-section { margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; background: #fafafa; }
+    </style>
 </head>
 <body>
+    <!-- 上部：新規追加入力フォーム -->
+    <div class="form-section">
+        <h2>対戦記録登録</h2>
+        <form id="matchForm">
+            <table>
+                <tr>
+                    <td><label for="winnerArchetypeId">勝者のアーキタイプ ID：</label></td>
+                    <td>
+                        <select id="winnerArchetypeId" name="winnerArchetypeId" required>
+                            <option value="">-- アーキタイプを選択 --</option>
+                        </select>
+                    </td>
+                    
+                    <td><label for="loserArchetypeId">敗者のアーキタイプ ID：</label></td>
+                    <td>
+                        <select id="loserArchetypeId" name="loserArchetypeId" required>
+                            <option value="">-- アーキタイプを選択 --</option>
+                        </select>
+                    </td>
+                    
+                    <td><label for="playOrder">勝者の先攻後攻：</label></td>
+                    <td><select id="playOrder" name="playOrder" required>
+                            <option value="FIRST">先攻 (FIRST)</option>
+                            <option value="SECOND">後攻 (SECOND)</option>
+                            <option value="UNKNOWN" selected>不明 (UNKNOWN)</option>
+                        </select></td>
+                </tr>
+                <tr>
+                    <td><label for="memo">メモ（500 文字以内）：</label></td>
+                    <td><input type="text" id="memo" name="memo" placeholder="500文字以内" /></td>
+                    
+                    <td><label for="playedAt">対戦日時：</label></td>
+                    <td><input type="datetime-local" id="playedAt" name="playedAt" required /></td>
+                    
+                    <td colspan="2">
+                        <button type="submit">追加</button>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </div>
 
+    <!-- 下部：一覧表示テーブル -->
+    <h2>対戦履歴一覧</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>勝者のアーキタイプ名</th>
+                <th>敗者のアーキタイプ名</th>
+                <th>勝者の先攻後攻</th>
+                <th>メモ</th>
+                <th>対戦日時</th>
+            </tr>
+        </thead>
+        <tbody id="matchesTableBody">
+            <!-- ここにJavaScriptで動的に行（tr）が追加されます -->
+        </tbody>
+    </table>
+
+    <!-- フロントエンドとバックエンドを繋ぐJavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeArchetypeSelects(); // プルダウンの選択肢を準備
+            loadMatches();                // 履歴の読み込み
+        });
+
+        // APIからアーキタイプ一覧を取得してプルダウンにセットする関数
+        async function initializeArchetypeSelects() {
+            try {
+                const response = await fetch('/api/archetypes');
+
+                if (!response.ok) {
+                    // エラーのときは共通エラーJSONを解析してアラートを出す
+                    const errorData = await response.json();
+                    alert(errorData.message);
+                    return;
+                }
+
+                const archetypes = await response.json();
+                
+                const winnerSelect = document.getElementById('winnerArchetypeId');
+                const loserSelect = document.getElementById('loserArchetypeId');
+
+                // 取得したアーキタイプをループして、<option>タグを生成する
+                archetypes.forEach(archetype => {
+                    // 勝者用の選択肢
+                    const optionW = document.createElement('option');
+                    optionW.value = archetype.id;       // サーバーに送る値（ID）
+                    optionW.textContent = archetype.name; // 画面に見せる名前
+                    winnerSelect.appendChild(optionW);
+
+                    // 敗者用の選択肢
+                    const optionL = document.createElement('option');
+                    optionL.value = archetype.id;
+                    optionL.textContent = archetype.name;
+                    loserSelect.appendChild(optionL);
+                });
+            } catch (error) {
+                console.error('アーキタイプ一覧の取得に失敗しました:', error);
+            }
+        }
+
+
+        // フォームの送信（追加ボタンクリック）時のイベント
+        document.getElementById('matchForm').addEventListener('submit', async (e) => {
+            e.preventDefault(); // 通常のページ遷移を止める
+            
+            const winnerIdInput = document.getElementById('winnerArchetypeId');
+            const winnerIdValue = winnerIdInput.value.trim();
+            const loserIdInput = document.getElementById('loserArchetypeId');
+            const loserIdValue = loserIdInput.value.trim();
+            const playOrderInput = document.getElementById('playOrder');
+            const playOrderValue = playOrderInput.value.trim();
+            const memoInput = document.getElementById('memo');
+            const memoValue = memoInput.value.trim();
+            const playedAtInput = document.getElementById('playedAt');
+            const playedAtValue = playedAtInput.value.trim();
+
+            // 必須入力のチェック
+            if (!winnerIdValue || !loserIdValue || !playedAtValue) return;
+
+            try {
+                // POST /api/matches で新規登録
+                const response = await fetch('/api/matches', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        winnerArchetypeId: parseInt(winnerIdValue), // 数値型に変換
+                        loserArchetypeId: parseInt(loserIdValue),   // 数値型に変換
+                        playOrder: playOrderValue,
+                        memo: memoValue,
+                        playedAt: playedAtValue // HTML5のdatetime-localの形式はサーバーで処理可能
+                    })
+                });
+
+                if (response.ok) {
+                    // 入力欄をクリアする
+                    winnerIdInput.value = '';
+                    loserIdInput.value = '';
+                    playOrderInput.value = '';
+                    memoInput.value = '';
+                    playedAtInput.value = '';
+                    
+                    loadMatches(); // 対戦一覧を再読み込みして最新にする
+                } else {
+                    // サーバーから返ってきた共通エラーレスポンス（JSON）を解析して表示
+                    const errorData = await response.json();
+                    alert(errorData.message);
+                }
+            } catch (error) {
+                console.error('通信エラー:', error);
+                alert('通信エラーが発生しました。');
+            }
+        });
+
+        // GET /api/matches から一覧を取得してテーブルに描画する関数
+        async function loadMatches() {
+            try {
+                const response = await fetch('/api/matches');
+                if (!response.ok) return;
+
+                const matches = await response.json();
+                const tbody = document.getElementById('matchesTableBody');
+                tbody.innerHTML = ''; // 一旦テーブルをクリア
+
+                // 取得したデータを1件ずつループしてテーブルの行を作る
+                matches.forEach(match => {
+                    const row = document.createElement('tr');
+                    
+                    // 日時が見やすいように少し整形
+                    const date = new Date(match.playedAt).toLocaleString();
+
+                    // ※サーバーからは「アーキタイプ名」が一緒に返ってくる想定のプロパティ名にしています
+                    row.innerHTML = `
+                        <td>${match.winnerArchetypeName}</td>
+                        <td>${match.loserArchetypeName}</td>
+                        <td>${match.playOrder}</td>
+                        <td>${match.memo}</td>
+                        <td>${date}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('一覧の取得に失敗しました:', error);
+            }
+        }
+    </script>
 </body>
 </html>
