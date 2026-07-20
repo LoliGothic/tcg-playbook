@@ -1,10 +1,111 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head>
-<meta charset="UTF-8">
-<title>Insert title here</title>
-</head>
+	<head>
+	    <meta charset="UTF-8">
+	    <title>アーキタイプ画面</title>
+		<style>
+			body { font-family: sans-serif; margin: 30px; }
+			table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+			th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+			th { background-color: #f4f4f4; }
+			.form-section { margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; background: #fafafa; }
+		</style>
+	</head>
 <body>
+	<!-- 上部：新規追加入力フォーム -->
+	    <div class="form-section">
+	        <h2>新規アーキタイプ登録</h2>
+	        <form id="archetypeForm">
+	            <table>
+	                <tr>
+	                    <td><label for="archetypeName">アーキタイプ名：</label></td>
+	                    <td>
+	                        <input type="text" id="archetypeName" name="name" required placeholder="例: 黒緑アビス" />
+	                        <button type="submit">追加</button>
+	                    </td>
+	                </tr>
+	            </table>
+	        </form>
+	    </div>
 
+	<!-- 下部：一覧表示テーブル -->
+    <h2>アーキタイプ一覧</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>アーキタイプ ID</th>
+                <th>アーキタイプ名</th>
+                <th>登録日時</th>
+            </tr>
+        </thead>
+        <tbody id="archetypeTableBody">
+            <!-- ここにJavaScriptで動的に行（tr）が追加されます -->
+        </tbody>
+    </table>
+
+	<!-- フロントエンドとバックエンドを繋ぐJavaScript -->
+    <script>
+
+        // 画面が開いたときに自動で一覧を読み込む
+        document.addEventListener('DOMContentLoaded', loadArchetypes);
+
+        // フォームの送信（追加ボタンクリック）時のイベント
+        document.getElementById('archetypeForm').addEventListener('submit', async (e) => {
+            e.preventDefault(); // 通常のページ遷移を止める
+            
+            const nameInput = document.getElementById('archetypeName');
+            const nameValue = nameInput.value.trim();
+            if (!nameValue) return;
+
+            try {
+                // 1. POST /api/archetypes で新規登録
+                const response = await fetch('/api/archetypes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({name: nameValue }) // IDと日時はサーバー側で自動生成
+                });
+
+                if (response.ok) {
+                    nameInput.value = ''; // 入力欄を空にする
+                    loadArchetypes();     // 一覧を再読み込みして最新にする
+                } else {
+					// サーバーから返ってきた共通エラーレスポンス（JSON）を解析する
+					const errorData = await response.json();
+					alert(errorData.message);
+                }
+            } catch (error) {
+                console.error('通信エラー:', error);
+            }
+        });
+
+        // GET /api/archetypes から一覧を取得してテーブルに描画する関数
+        async function loadArchetypes() {
+            try {
+                const response = await fetch('/api/archetypes');
+                if (!response.ok) return;
+
+                const archetypes = await response.json();
+                const tbody = document.getElementById('archetypeTableBody');
+                tbody.innerHTML = ''; // 一旦テーブルをクリア
+
+                // 取得したデータを1件ずつループしてテーブルの行を作る
+                archetypes.forEach(archetype => {
+                    const row = document.createElement('tr');
+                    
+                    // 日時が見やすいように少し整形
+                    const date = new Date(archetype.createdAt).toLocaleString();
+
+                    row.innerHTML = `
+                        <td>${archetype.id}</td>
+                        <td>${archetype.name}</td>
+                        <td>${date}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('一覧の取得に失敗しました:', error);
+            }
+        }
+    </script>
 </body>
 </html>
