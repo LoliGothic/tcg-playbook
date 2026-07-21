@@ -1,0 +1,17 @@
+# Maven ビルド成果物
+target/
+
+# IDE 設定
+.idea/
+*.iml
+.vscode/
+
+# ログ・OS ファイル
+*.log
+.DS_Store
+
+# Eclipse metadata
+.metadata
+.classpath
+.project
+.settings/
