@@ -6,7 +6,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
 public class ViewController {
-	
+
+	@GetMapping("/")
+	public String indexPage() {
+		return "index";
+	};          // templates/index.html を返す（各画面への入口）
+
 	@GetMapping("/archetypes")
 	public String archetypesPage() {
 		return "archetypes"; 
