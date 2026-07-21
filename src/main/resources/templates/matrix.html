@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>勝率マトリックス画面</title>
+    <style>
+        body { font-family: sans-serif; margin: 30px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 12px; text-align: center; }
+        th { background-color: #f4f4f4; }
+        th.axis-label { background-color: #eaeaea; font-weight: bold; }
+        .diagonal { background-color: #f0f0f0; color: #999; }
+        
+        /* 勝率に応じた色分け（お好みで調整してください） */
+        .win-high { background-color: #d4edda; color: #155724; font-weight: bold; }
+        .win-low { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    
+    <h2>勝率マトリックス（横軸から見た勝率）</h2>
+    <p style="font-size: 14px; color: #666;">※ <strong>横軸（列）のデッキから見た</strong>、縦軸（行）のデッキに対する勝率を表示しています。</p>
+    
+    <table>
+        <thead id="matrixHead">
+            <!-- JavaScriptで動的に生成 -->
+        </thead>
+        <tbody id="matrixBody">
+            <!-- JavaScriptで動的に生成 -->
+        </tbody>
+    </table>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            getMatrix(); 
+        });
+
+        async function getMatrix() {
+            try {
+                // 1. 本番のAPIエンドポイントからデータを取得
+                const response = await fetch('/api/matrix');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                // List<MatrixRowResponse> を受け取る
+                const matrixList = await response.json();
+
+                // データが空の場合は処理を中断
+                if (!matrixList || matrixList.length === 0) {
+                    document.getElementById('matrixBody').innerHTML = '<tr><td colspan="100%">データが存在しません。</td></tr>';
+                    return;
+                }
+
+                // 2. 重複のないユニークなアーキタイプ一覧を抽出してリスト化
+                const archetypeMap = new Map();
+                matrixList.forEach(item => {
+                    if (item.myArchetypeId) {
+                        archetypeMap.set(item.myArchetypeId, item.myArchetypeName);
+                    }
+                });
+                
+                // ID順などにソートしておくとマトリックスが綺麗に並びます
+                const uniqueArchetypes = Array.from(archetypeMap.entries())
+                    .map(([id, name]) => ({ id, name }))
+                    .sort((a, b) => a.id - b.id);
+
+                const thead = document.getElementById('matrixHead');
+                const tbody = document.getElementById('matrixBody');
+                
+                thead.innerHTML = '';
+                tbody.innerHTML = '';
+
+                // 3. ヘッダー行（横軸の列名）の生成
+                const headerRow = document.createElement('tr');
+                headerRow.innerHTML = '<th class="axis-label">デッキ名（縦:対戦相手 / 横:自分）</th>'; 
+                uniqueArchetypes.forEach(col => {
+                    headerRow.innerHTML += `<th>${col.name}</th>`;
+                });
+                thead.appendChild(headerRow);
+
+                // 4. データ行（縦軸）の生成
+                uniqueArchetypes.forEach(row => {
+                    const tr = document.createElement('tr');
+                    
+                    // 縦軸（行）のタイトルを設定
+                    let rowHtml = `<td class="axis-label">${row.name}</td>`;
+                    
+                    // 横軸（列）のループ
+                    uniqueArchetypes.forEach(col => {
+                        // 対角線（自分自身との対戦）の処理
+                        if (row.id === col.id) {
+                            rowHtml += `<td class="diagonal">-</td>`;
+                        } else {
+                            // 横軸(col)から見た、縦軸(row)への勝率データを検索
+                            const cellData = matrixList.find(item => 
+                                item.myArchetypeId === col.id && item.opponentArchetypeId === row.id
+                            );
+
+                            // データがない、または対戦数が0の場合の安全処理
+                            if (!cellData || cellData.total === 0) {
+                                rowHtml += `<td>-</td>`;
+                            } else {
+                                // 小数点第1位まで表示（例: 54.3%）
+                                const displayRate = cellData.winRate.toFixed(1) + '%';
+                                // 内訳（勝ち数/総試合数）を小さく表示
+                                const matchCountStr = `<br><small style="color:#666;">(${cellData.wins}/${cellData.total})</small>`;
+                                
+                                // 勝率に応じたCSSクラスの決定
+                                let colorClass = '';
+                                if (cellData.winRate >= 60.0) colorClass = 'class="win-high"';
+                                if (cellData.winRate < 40.0) colorClass = 'class="win-low"';
+
+                                rowHtml += `<td ${colorClass}>${displayRate}${matchCountStr}</td>`;
+                            }
+                        }
+                    });
+                    
+                    tr.innerHTML = rowHtml;
+                    tbody.appendChild(tr);
+                });
+
+            } catch (error) {
+                console.error('勝率マトリックスの取得・描画に失敗しました:', error);
+                document.getElementById('matrixBody').innerHTML = '<tr><td colspan="100%" style="color: red;">データの読み込みに失敗しました。</td></tr>';
+            }
+        }
+    </script>
+</body>
+</html>
