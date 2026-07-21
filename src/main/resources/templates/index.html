@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+	<head>
+	    <meta charset="UTF-8">
+	    <title>Duel Matrix</title>
+		<style>
+			body { font-family: sans-serif; margin: 30px; }
+			h1 { margin-bottom: 5px; }
+			.subtitle { color: #666; margin-top: 0; }
+			.menu { display: flex; flex-direction: column; gap: 12px; max-width: 360px; margin-top: 24px; }
+			.menu a {
+				display: block; padding: 16px 20px; border: 1px solid #ccc; border-radius: 8px;
+				background: #fafafa; color: #333; text-decoration: none; font-size: 16px;
+			}
+			.menu a:hover { background: #eef4ff; border-color: #99b8ff; }
+			.menu small { display: block; color: #888; margin-top: 4px; }
+		</style>
+	</head>
+<body>
+	<h1>Duel Matrix</h1>
+	<p class="subtitle">TCG アーキタイプの対戦記録から勝率マトリクスを集計する．</p>
+
+	<nav class="menu">
+		<a href="/matrix">勝率マトリクス<small>アーキタイプ同士の勝率を一覧表示</small></a>
+		<a href="/matches">対戦記録<small>対戦結果の登録・一覧</small></a>
+		<a href="/archetypes">アーキタイプ<small>デッキ（アーキタイプ）の登録・一覧</small></a>
+	</nav>
+</body>
+</html>
