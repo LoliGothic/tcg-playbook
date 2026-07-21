@@ -60,11 +60,13 @@ public class StandardMatrixBuilder extends AbstractMatrixBuilder{
 		}
 		
 		total = wins + losses;
-		
+
+		// このペアに対戦記録が無い場合は行を作らない（ゼロ除算回避・仕様どおり除外）．
+		// build() 側で null は rows に追加されない．
 		if (total == 0) {
-	        throw new IllegalStateException("対戦データが1件も存在しないため、マトリクスを生成できません．");
+	        return null;
 	    }
-		
+
 		winRate = (double) wins/total *100;
 		
 		return new MatrixRowResponse(me.getId(),me.getName(),opponent.getId(),opponent.getName(),wins,losses,total,winRate);

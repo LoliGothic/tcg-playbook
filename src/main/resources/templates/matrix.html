@@ -43,8 +43,9 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
-                // List<MatrixRowResponse> を受け取る
-                const matrixList = await response.json();
+                // API_SPEC どおり {"rows": [...]} を受け取り，rows 配列を取り出す
+                const data = await response.json();
+                const matrixList = data.rows || [];
 
                 // データが空の場合は処理を中断
                 if (!matrixList || matrixList.length === 0) {
